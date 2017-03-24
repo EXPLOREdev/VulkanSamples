@@ -376,6 +376,7 @@ if (BUILD_API_SAMPLES)
 endif()
 
 add_subdirectory(Sample-Programs/Hologram)
+add_subdirectory(Sample-Programs/LunarGravity)
 
 if (BUILD_SAMPLE_LAYERS)
     add_subdirectory(Layer-Samples/Overlay)
