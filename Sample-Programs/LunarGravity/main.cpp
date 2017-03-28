@@ -30,8 +30,63 @@
 
 int main(int argc, char *argv[]) {
     bool fullscreen = false;
-    bool validate = true;
-    LgWindow window(320, 240, fullscreen);
+    bool validate = false;
+    LgLogLevel log_level = LG_LOG_ERROR;
+    uint32_t win_width = 320;
+    uint32_t win_height = 240;
+    bool print_usage = false;
+    for (int32_t i = 1; i < argc; i++) {
+        if (argv[i][0] != '-' || argv[i][1] != '-') {
+            print_usage = true;
+            break;
+        }
+        if (!strcmp(&argv[i][2], "validate")) {
+            validate = true;
+        } else if (!strcmp(&argv[i][2], "fullscreen")) {
+            fullscreen = true;
+        } else if (!strcmp(&argv[i][2], "width")) {
+            if (argc >= i + 1) {
+                win_width = atoi(argv[++i]);
+            } else {
+                print_usage = true;
+            }
+        } else if (!strcmp(&argv[i][2], "height")) {
+            if (argc >= i + 1) {
+                win_height = atoi(argv[++i]);
+            } else {
+                print_usage = true;
+            }
+        } else if (!strcmp(&argv[i][2], "loglevel")) {
+            if (argc >= i + 1) {
+                if (!strcmp(argv[++i], "warn")) {
+                    log_level = LG_LOG_WARN_ERROR;
+                } else if (!strcmp(argv[i], "info")) {
+                    log_level = LG_LOG_INFO_WARN_ERROR;
+                } else if (!strcmp(argv[i], "all")) {
+                    log_level = LG_LOG_ALL;
+                } else {
+                    print_usage = true;
+                }
+            } else {
+                print_usage = true;
+            }
+        }
+    }
+
+    if (print_usage) {
+        std::cout << "Usage: " << argv[0] << " [OPTIONS]" << std::endl
+                  << "\t[OPTIONS]" << std::endl
+                  << "\t\t--validate\t\t\tEnable validation" << std::endl
+                  << "\t\t--fullscreen\t\t\tEnable fullscreen render" << std::endl
+                  << "\t\t--width val\t\t\tSet window width to val" << std::endl
+                  << "\t\t--height val\t\t\tSet window height to val" << std::endl
+                  << "\t\t--loglevel [warn, info, all]\tEnable logging of provided level and above." << std::endl;
+        return -1;
+    }
+
+    LgLogger &logger = LgLogger::getInstance();
+    logger.SetLogLevel(log_level);
+    LgWindow window(win_width, win_height, fullscreen);
     LgGraphicsEngine engine(APPLICATION_NAME, APPLICATION_VERSION, validate, window);
     return 0;
 }

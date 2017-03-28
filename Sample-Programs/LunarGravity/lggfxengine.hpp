@@ -23,6 +23,15 @@
 class LgWindow;
 struct VulkanString;
 
+enum LgSystemBatteryStatus {
+    LG_BATTERY_STATUS_NONE = 0,
+    LG_BATTERY_STATUS_DISCHARGING_HIGH, // > 66%
+    LG_BATTERY_STATUS_DISCHARGING_MID, // > 33%
+    LG_BATTERY_STATUS_DISCHARGING_LOW, // < 33%
+    LG_BATTERY_STATUS_DISCHARGING_CRITICAL, // < 5%
+    LG_BATTERY_STATUS_CHARGING,
+};
+
 class LgGraphicsEngine {
     public:
 
@@ -40,7 +49,12 @@ class LgGraphicsEngine {
  
     private:
 
+        bool InitVulkan(const std::string &app_name, uint16_t app_version, bool validate, LgWindow &window);
+        LgSystemBatteryStatus SystemBatteryStatus(void);
+        int CompareGpus(VkPhysicalDeviceProperties &gpu_0, VkPhysicalDeviceProperties &gpu_1);
+
         VkInstance m_vk_inst;
         bool m_validation_enabled;
         bool m_debug_enabled;
+        VkPhysicalDevice m_vk_phys_dev;
 };
