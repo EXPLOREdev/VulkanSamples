@@ -130,10 +130,34 @@ bool LgGraphicsEngine::InitVulkan(const std::string &app_name, uint16_t app_vers
     }
 
     for (uint32_t ext = 0; ext < count; ext++) {
+std::cout << "Extension [" << ext << "] - " << extension_properties[ext].extensionName << std::endl;
         if (!strcmp(extension_properties[ext].extensionName, VK_EXT_DEBUG_REPORT_EXTENSION_NAME)) {
             m_debug_enabled = true;
             extensions_to_enable[enable_extension_count++] = VK_EXT_DEBUG_REPORT_EXTENSION_NAME;
             logger.LogInfo("Found debug report extension in Instance Extension list");
+    }
+
+    VkDebugReportCallbackCreateInfoEXT dbgCreateInfoTemp = {};
+
+    LgLogLevel level = logger.GetLogLevel();
+    if (level > LG_LOG_DISABLE) {
+        dbgCreateInfoTemp.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT;
+        dbgCreateInfoTemp.pNext = nullptr;
+        dbgCreateInfoTemp.pfnCallback = LoggerCallback;
+        dbgCreateInfoTemp.pUserData = this;
+        switch (level) {
+            case LG_LOG_ALL:
+                dbgCreateInfoTemp.flags = VK_DEBUG_REPORT_DEBUG_BIT_EXT;
+            case LG_LOG_INFO_WARN_ERROR:
+                dbgCreateInfoTemp.flags |= VK_DEBUG_REPORT_INFORMATION_BIT_EXT;
+            case LG_LOG_WARN_ERROR:
+                dbgCreateInfoTemp.flags |= VK_DEBUG_REPORT_WARNING_BIT_EXT |
+                                           VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT;
+            case LG_LOG_ERROR:
+                dbgCreateInfoTemp.flags |= VK_DEBUG_REPORT_ERROR_BIT_EXT;
+                break;
+            default:
+                break;
         }
     }
 
@@ -141,6 +165,10 @@ bool LgGraphicsEngine::InitVulkan(const std::string &app_name, uint16_t app_vers
     vk_inst_create_info.ppEnabledExtensionNames = (const char *const *)extensions_to_enable;
     vk_inst_create_info.enabledLayerCount = enable_layer_count;
     vk_inst_create_info.ppEnabledLayerNames = (const char *const *)layers_to_enable;
+
+    if (level > LG_LOG_DISABLE) {
+        vk_inst_create_info.pNext = &dbgCreateInfoTemp;
+    }
 
     vk_result = vkCreateInstance(&vk_inst_create_info, nullptr, &m_vk_inst);
     if (vk_result == VK_ERROR_INCOMPATIBLE_DRIVER) {
@@ -259,6 +287,21 @@ bool LgGraphicsEngine::InitVulkan(const std::string &app_name, uint16_t app_vers
         logger.LogError("Failed to find a GPU of any kind");
         return false;
     }
+
+#if 0 // Brainpain
+    bool found_swapchain = false;
+        } else if (!strcmp(extension_properties[ext].extensionName, VK_KHR_SWAPCHAIN_EXTENSION_NAME)) {
+            found_swapchain = true;
+            extensions_to_enable[enable_extension_count++] = VK_KHR_SWAPCHAIN_EXTENSION_NAME;
+            logger.LogInfo("Found swapchain extension in Instance Extension list");
+        }
+    if (!found_swapchain) {
+        std::string error_msg = "LgWindow::QueryWindowSystem failed to find necessary extension ";
+        error_msg += VK_KHR_SWAPCHAIN_EXTENSION_NAME;
+        logger.LogError(error_msg);
+        return false;
+    }
+#endif
 
     return true;
 }

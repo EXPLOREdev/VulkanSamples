@@ -20,6 +20,7 @@
 
 #include <iostream>
 #include <fstream>
+#include "vulkan/vulkan.h"
 
 enum LgLogLevel {
     LG_LOG_DISABLE = 0,
@@ -43,11 +44,15 @@ class LgLogger {
         void SetCommandLineOutput(bool enable) { m_output_cmdline = enable; }
         void SetFileOutput(std::string output_file);
 
+        LgLogLevel GetLogLevel() { return m_log_level; }
         void SetLogLevel(LgLogLevel level) { m_log_level = level; }
+        void TogglePopups(bool enable) { m_enable_popups = enable; }
 
         // Log messages
+        void LogDebug(std::string message);
         void LogInfo(std::string message);
         void LogWarning(std::string message);
+        void LogPerf(std::string message);
         void LogError(std::string message);
 
     private:
@@ -56,6 +61,11 @@ class LgLogger {
 
         bool m_output_cmdline;
         bool m_output_file;
+        bool m_enable_popups;
         std::ofstream m_file_stream;
         LgLogLevel m_log_level;
 };
+
+VKAPI_ATTR VkBool32 VKAPI_CALL LoggerCallback(VkFlags msgFlags, VkDebugReportObjectTypeEXT objType,
+                                              uint64_t srcObject, size_t location, int32_t msgCode,
+                                              const char *pLayerPrefix, const char *pMsg, void *pUserData);

@@ -31,6 +31,7 @@
 int main(int argc, char *argv[]) {
     bool fullscreen = false;
     bool validate = false;
+    bool enable_popups = true;
     LgLogLevel log_level = LG_LOG_ERROR;
     uint32_t win_width = 320;
     uint32_t win_height = 240;
@@ -56,6 +57,8 @@ int main(int argc, char *argv[]) {
             } else {
                 print_usage = true;
             }
+        } else if (!strcmp(&argv[i][2], "nopopups")) {
+            enable_popups = false;
         } else if (!strcmp(&argv[i][2], "loglevel")) {
             if (argc >= i + 1) {
                 if (!strcmp(argv[++i], "warn")) {
@@ -76,16 +79,18 @@ int main(int argc, char *argv[]) {
     if (print_usage) {
         std::cout << "Usage: " << argv[0] << " [OPTIONS]" << std::endl
                   << "\t[OPTIONS]" << std::endl
-                  << "\t\t--validate\t\t\tEnable validation" << std::endl
                   << "\t\t--fullscreen\t\t\tEnable fullscreen render" << std::endl
-                  << "\t\t--width val\t\t\tSet window width to val" << std::endl
+                  << "\t\t--validate\t\t\tEnable validation" << std::endl
+                  << "\t\t--loglevel [warn, info, all]\tEnable logging of provided level and above." << std::endl
+                  << "\t\t--nopopups\t\t\tDisable warning/error pop-ups on Windows" << std::endl
                   << "\t\t--height val\t\t\tSet window height to val" << std::endl
-                  << "\t\t--loglevel [warn, info, all]\tEnable logging of provided level and above." << std::endl;
+                  << "\t\t--width val\t\t\tSet window width to val" << std::endl;
         return -1;
     }
 
     LgLogger &logger = LgLogger::getInstance();
     logger.SetLogLevel(log_level);
+    logger.TogglePopups(enable_popups);
     LgWindow window(win_width, win_height, fullscreen);
     LgGraphicsEngine engine(APPLICATION_NAME, APPLICATION_VERSION, validate, window);
     return 0;

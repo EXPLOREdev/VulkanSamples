@@ -18,6 +18,32 @@
 
 #include "lglogger.hpp"
 
+VKAPI_ATTR VkBool32 VKAPI_CALL LoggerCallback(VkFlags msgFlags, VkDebugReportObjectTypeEXT objType,
+                                              uint64_t srcObject, size_t location, int32_t msgCode,
+                                              const char *pLayerPrefix, const char *pMsg, void *pUserData) {
+    LgLogger &logger = LgLogger::getInstance();
+    std::string message = "Layer: ";
+    message += pLayerPrefix;
+    message += ", Code: ";
+    message += std::to_string(msgCode);
+    message += ", Message: ";
+    message += pMsg;
+
+    if (msgFlags & VK_DEBUG_REPORT_WARNING_BIT_EXT) {
+        logger.LogWarning(message);
+    } else if (msgFlags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT) {
+        logger.LogPerf(message);
+    } else if (msgFlags & VK_DEBUG_REPORT_ERROR_BIT_EXT) {
+        logger.LogError(message);
+    } else if (msgFlags & VK_DEBUG_REPORT_DEBUG_BIT_EXT) {
+        logger.LogDebug(message);
+    } else {
+        logger.LogInfo(message);
+    }
+
+    return false;
+}
+
 LgLogger::LgLogger() {
     m_output_cmdline = true;
     m_output_file = false;
@@ -43,9 +69,27 @@ void LgLogger::SetFileOutput(std::string output_file) {
     }
 }
 
-void LgLogger::LogInfo(std::string message) {
-    std::string prefix = "LunarGravity INFO: ";
+void LgLogger::LogDebug(std::string message) {
+#ifdef ANDROID
+    __android_log_print(ANDROID_LOG_DEBUG, "LunarGravity", "%s", message.c_str());
+#else
+    std::string prefix = "LunarGravity DEBUG: ";
+    if (m_log_level >= LG_LOG_ALL) {
+        if (m_output_cmdline) {
+            std::cout << prefix << message << std::endl;
+        }
+        if (m_output_file) {
+            m_file_stream << prefix << message << std::endl;
+        }
+    }
+#endif
+}
 
+void LgLogger::LogInfo(std::string message) {
+#ifdef ANDROID
+    __android_log_print(ANDROID_LOG_INFO, "LunarGravity", "%s", message.c_str());
+#else
+    std::string prefix = "LunarGravity INFO: ";
     if (m_log_level >= LG_LOG_INFO_WARN_ERROR) {
         if (m_output_cmdline) {
             std::cout << prefix << message << std::endl;
@@ -54,11 +98,35 @@ void LgLogger::LogInfo(std::string message) {
             m_file_stream << prefix << message << std::endl;
         }
     }
+#endif
 }
 
 void LgLogger::LogWarning(std::string message) {
+#ifdef ANDROID
+    __android_log_print(ANDROID_LOG_WARN, "LunarGravity", "%s", message.c_str());
+#else
     std::string prefix = "LunarGravity WARNING: ";
+    if (m_log_level >= LG_LOG_WARN_ERROR) {
+        if (m_output_cmdline) {
+            std::cout << prefix << message << std::endl;
+        }
+        if (m_output_file) {
+            m_file_stream << prefix << message << std::endl;
+        }
+#ifdef _WIN32
+        if (m_enable_popups) {
+            MessageBox(NULL, message.c_str(), prefix.c_str(), MB_OK);
+        }
+#endif
+    }
+#endif
+}
 
+void LgLogger::LogPerf(std::string message) {
+#ifdef ANDROID
+    __android_log_print(ANDROID_LOG_WARN, "LunarGravity", "%s", message.c_str());
+#else
+    std::string prefix = "LunarGravity PERF: ";
     if (m_log_level >= LG_LOG_WARN_ERROR) {
         if (m_output_cmdline) {
             std::cout << prefix << message << std::endl;
@@ -67,11 +135,14 @@ void LgLogger::LogWarning(std::string message) {
             m_file_stream << prefix << message << std::endl;
         }
     }
+#endif
 }
 
 void LgLogger::LogError(std::string message) {
+#ifdef ANDROID
+    __android_log_print(ANDROID_LOG_ERROR, "LunarGravity", "%s", message.c_str());
+#else
     std::string prefix = "LunarGravity ERROR: ";
-
     if (m_log_level >= LG_LOG_ERROR) {
         if (m_output_cmdline) {
             std::cout << prefix << message << std::endl;
@@ -79,5 +150,11 @@ void LgLogger::LogError(std::string message) {
         if (m_output_file) {
             m_file_stream << prefix << message << std::endl;
         }
+#ifdef _WIN32
+        if (m_enable_popups) {
+            MessageBox(NULL, message.c_str(), prefix.c_str(), MB_OK);
+        }
+#endif
     }
+#endif
 }
