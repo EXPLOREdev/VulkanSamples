@@ -18,10 +18,7 @@
 
 #pragma once
 
-#include <vulkan/vulkan.h>
-
 class LgWindow;
-struct VulkanString;
 
 enum LgSystemBatteryStatus {
     LG_BATTERY_STATUS_NONE = 0,
@@ -36,7 +33,7 @@ class LgGraphicsEngine {
     public:
 
         // Create a protected constructor
-        LgGraphicsEngine(const std::string &app_name, uint16_t app_version, bool validate, LgWindow &window);
+        LgGraphicsEngine(const std::string &app_name, uint16_t app_version, bool validate, LgWindow *window);
 
         // We don't want any copy constructors
         LgGraphicsEngine(const LgGraphicsEngine &gfx_engine) = delete;
@@ -45,16 +42,17 @@ class LgGraphicsEngine {
         // Make the destructor public
         virtual ~LgGraphicsEngine();
 
+
+        void Loop(void);
+
     protected:
- 
-    private:
 
-        bool InitVulkan(const std::string &app_name, uint16_t app_version, bool validate, LgWindow &window);
         LgSystemBatteryStatus SystemBatteryStatus(void);
-        int CompareGpus(VkPhysicalDeviceProperties &gpu_0, VkPhysicalDeviceProperties &gpu_1);
+ 
+        bool m_quit;
 
-        VkInstance m_vk_inst;
-        bool m_validation_enabled;
-        bool m_debug_enabled;
-        VkPhysicalDevice m_vk_phys_dev;
+        // Window
+        LgWindow *m_window;
+
+    private:
 };

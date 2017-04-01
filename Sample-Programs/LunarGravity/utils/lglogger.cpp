@@ -62,6 +62,7 @@ void LgLogger::SetFileOutput(std::string output_file) {
         if (m_file_stream.fail()) {
             std::cerr << "Error failed opening output file stream for "
                       << output_file << std::endl;
+            std::cerr << std::flush;
             m_output_file = false;
         } else {
             m_output_file = true;
@@ -77,9 +78,11 @@ void LgLogger::LogDebug(std::string message) {
     if (m_log_level >= LG_LOG_ALL) {
         if (m_output_cmdline) {
             std::cout << prefix << message << std::endl;
+            std::cout << std::flush;
         }
         if (m_output_file) {
             m_file_stream << prefix << message << std::endl;
+            m_file_stream << std::flush;
         }
     }
 #endif
@@ -93,9 +96,11 @@ void LgLogger::LogInfo(std::string message) {
     if (m_log_level >= LG_LOG_INFO_WARN_ERROR) {
         if (m_output_cmdline) {
             std::cout << prefix << message << std::endl;
+            std::cout << std::flush;
         }
         if (m_output_file) {
             m_file_stream << prefix << message << std::endl;
+            m_file_stream << std::flush;
         }
     }
 #endif
@@ -109,9 +114,11 @@ void LgLogger::LogWarning(std::string message) {
     if (m_log_level >= LG_LOG_WARN_ERROR) {
         if (m_output_cmdline) {
             std::cout << prefix << message << std::endl;
+            std::cout << std::flush;
         }
         if (m_output_file) {
             m_file_stream << prefix << message << std::endl;
+            m_file_stream << std::flush;
         }
 #ifdef _WIN32
         if (m_enable_popups) {
@@ -130,9 +137,11 @@ void LgLogger::LogPerf(std::string message) {
     if (m_log_level >= LG_LOG_WARN_ERROR) {
         if (m_output_cmdline) {
             std::cout << prefix << message << std::endl;
+            std::cout << std::flush;
         }
         if (m_output_file) {
             m_file_stream << prefix << message << std::endl;
+            m_file_stream << std::flush;
         }
     }
 #endif
@@ -145,10 +154,12 @@ void LgLogger::LogError(std::string message) {
     std::string prefix = "LunarGravity ERROR: ";
     if (m_log_level >= LG_LOG_ERROR) {
         if (m_output_cmdline) {
-            std::cout << prefix << message << std::endl;
+            std::cerr << prefix << message << std::endl;
+            std::cerr << std::flush;
         }
         if (m_output_file) {
             m_file_stream << prefix << message << std::endl;
+            m_file_stream << std::flush;
         }
 #ifdef _WIN32
         if (m_enable_popups) {

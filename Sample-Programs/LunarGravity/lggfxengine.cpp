@@ -18,10 +18,8 @@
 
 #include <iostream>
 #include <cstdlib>
-#include <vector>
 #include <cstring>
 
-#include "lglogger.hpp"
 #include "lggfxengine.hpp"
 #include "lgwindow.hpp"
 
@@ -33,277 +31,12 @@
 #include <stdlib.h>
 #endif
 
-#define ENGINE_NAME "Lunar Gravity Graphics Engine"
-#define ENGINE_VERSION 1
-
-LgGraphicsEngine::LgGraphicsEngine(const std::string &app_name, uint16_t app_version, bool validate, LgWindow &window) {
-    if (!InitVulkan(app_name, app_version, validate, window)) {
-        exit(-1);
-    }
+LgGraphicsEngine::LgGraphicsEngine(const std::string &app_name, uint16_t app_version, bool validate, LgWindow *window) {
+    m_quit = false;
+    m_window = window;
 }
 
 LgGraphicsEngine::~LgGraphicsEngine() {
-    vkDestroyInstance(m_vk_inst, NULL);
-}
-
-bool LgGraphicsEngine::InitVulkan(const std::string &app_name, uint16_t app_version, bool validate, LgWindow &window) {
-    VkApplicationInfo vk_app_info = {};
-    VkInstanceCreateInfo vk_inst_create_info = {};
-    VkResult vk_result;
-    uint32_t count = 0;
-    std::vector<VkLayerProperties> layer_properties;
-    std::vector<VkExtensionProperties> extension_properties;
-    uint32_t enable_extension_count = 0;
-    const char *extensions_to_enable[VK_MAX_EXTENSION_NAME_SIZE];
-    uint32_t enable_layer_count = 0;
-    const char *layers_to_enable[VK_MAX_EXTENSION_NAME_SIZE];
-    LgLogger &logger = LgLogger::getInstance();
-    std::vector<VkPhysicalDevice> physical_devices;
-
-    memset(extensions_to_enable, 0, sizeof(extensions_to_enable));
-    memset(layers_to_enable, 0, sizeof(layers_to_enable));
-
-    // Define this application info first
-    vk_app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-    vk_app_info.pNext = nullptr;
-    vk_app_info.pApplicationName = app_name.c_str();
-    vk_app_info.applicationVersion = app_version;
-    vk_app_info.pEngineName = ENGINE_NAME;
-    vk_app_info.engineVersion = ENGINE_VERSION;
-    vk_app_info.apiVersion = VK_API_VERSION_1_0;
-
-    // Define Vulkan Instance Create Info
-    vk_inst_create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-    vk_inst_create_info.pNext = nullptr;
-    vk_inst_create_info.flags = 0;
-    vk_inst_create_info.pApplicationInfo = &vk_app_info;
-    vk_inst_create_info.enabledExtensionCount = 0;
-    vk_inst_create_info.ppEnabledExtensionNames = nullptr;
-    vk_inst_create_info.enabledLayerCount = 0;
-    vk_inst_create_info.ppEnabledLayerNames = nullptr;
-
-    // If user wants to validate, check to see if we can enable it.
-    if (validate) {
-        vk_result = vkEnumerateInstanceLayerProperties(&count, nullptr);
-        if (vk_result == VK_SUCCESS && count > 0) {
-            layer_properties.resize(count);
-            vk_result = vkEnumerateInstanceLayerProperties(&count, layer_properties.data());
-            if (vk_result == VK_SUCCESS && count > 0) {
-                for (uint32_t layer = 0; layer < count; layer++) {
-                    if (!strcmp(layer_properties[layer].layerName, "VK_LAYER_LUNARG_standard_validation")) {
-                        m_validation_enabled = true;
-                        layers_to_enable[enable_layer_count++] = "VK_LAYER_LUNARG_standard_validation";
-                        logger.LogInfo("Found standard validation layer");
-                    }
-                }
-            }
-        }
-    }
-
-    vk_result = vkEnumerateInstanceExtensionProperties(nullptr, &count, nullptr);
-    if (VK_SUCCESS != vk_result || count == 0) {
-        std::string error_msg = "LgWindow::QueryWindowSystem failed to query "
-                  "vkEnumerateInstanceExtensionProperties first time with error ";
-        error_msg += vk_result;
-        error_msg += " and count ";
-        error_msg += std::to_string(count);
-        logger.LogError(error_msg);
-        return false;
-    }
-
-    extension_properties.resize(count);
-    vk_result = vkEnumerateInstanceExtensionProperties(nullptr, &count, extension_properties.data());
-    if (VK_SUCCESS != vk_result || count == 0) {
-        std::string error_msg = "LgWindow::QueryWindowSystem failed to query "
-                   "vkEnumerateInstanceExtensionProperties with count ";
-        error_msg += std::to_string(count);
-        error_msg += " error ";
-        error_msg += vk_result;
-        logger.LogError(error_msg);
-        return false;
-    }
-
-    enable_extension_count = count;
-    if (!window.QueryWindowSystem(this, extension_properties, enable_extension_count, extensions_to_enable)) {
-        logger.LogError("Failed LgWindow::QueryWindowSystem");
-        return false;
-    }
-
-    for (uint32_t ext = 0; ext < count; ext++) {
-std::cout << "Extension [" << ext << "] - " << extension_properties[ext].extensionName << std::endl;
-        if (!strcmp(extension_properties[ext].extensionName, VK_EXT_DEBUG_REPORT_EXTENSION_NAME)) {
-            m_debug_enabled = true;
-            extensions_to_enable[enable_extension_count++] = VK_EXT_DEBUG_REPORT_EXTENSION_NAME;
-            logger.LogInfo("Found debug report extension in Instance Extension list");
-    }
-
-    VkDebugReportCallbackCreateInfoEXT dbgCreateInfoTemp = {};
-
-    LgLogLevel level = logger.GetLogLevel();
-    if (level > LG_LOG_DISABLE) {
-        dbgCreateInfoTemp.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT;
-        dbgCreateInfoTemp.pNext = nullptr;
-        dbgCreateInfoTemp.pfnCallback = LoggerCallback;
-        dbgCreateInfoTemp.pUserData = this;
-        switch (level) {
-            case LG_LOG_ALL:
-                dbgCreateInfoTemp.flags = VK_DEBUG_REPORT_DEBUG_BIT_EXT;
-            case LG_LOG_INFO_WARN_ERROR:
-                dbgCreateInfoTemp.flags |= VK_DEBUG_REPORT_INFORMATION_BIT_EXT;
-            case LG_LOG_WARN_ERROR:
-                dbgCreateInfoTemp.flags |= VK_DEBUG_REPORT_WARNING_BIT_EXT |
-                                           VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT;
-            case LG_LOG_ERROR:
-                dbgCreateInfoTemp.flags |= VK_DEBUG_REPORT_ERROR_BIT_EXT;
-                break;
-            default:
-                break;
-        }
-    }
-
-    vk_inst_create_info.enabledExtensionCount = enable_extension_count;
-    vk_inst_create_info.ppEnabledExtensionNames = (const char *const *)extensions_to_enable;
-    vk_inst_create_info.enabledLayerCount = enable_layer_count;
-    vk_inst_create_info.ppEnabledLayerNames = (const char *const *)layers_to_enable;
-
-    if (level > LG_LOG_DISABLE) {
-        vk_inst_create_info.pNext = &dbgCreateInfoTemp;
-    }
-
-    vk_result = vkCreateInstance(&vk_inst_create_info, nullptr, &m_vk_inst);
-    if (vk_result == VK_ERROR_INCOMPATIBLE_DRIVER) {
-        logger.LogError("LgWindow::QueryWindowSystem failed vkCreateInstance could not find a "
-                        "compatible Vulkan ICD");
-        return false;
-    } else if (vk_result == VK_ERROR_EXTENSION_NOT_PRESENT) {
-        logger.LogError("LgWindow::QueryWindowSystem failed vkCreateInstance could not find "
-                        "one or more extensions");
-        return false;
-    } else if (vk_result) {
-        std::string error_msg = "LgWindow::QueryWindowSystem failed vkCreateInstance ";
-        error_msg += vk_result;
-        error_msg += " encountered while attempting to create instance";
-        logger.LogError(error_msg);
-        return false;
-    }
-
-    vk_result = vkEnumeratePhysicalDevices(m_vk_inst, &count, nullptr);
-    if (VK_SUCCESS != vk_result || count == 0) {
-        std::string error_msg = "LgWindow::QueryWindowSystem failed to query "
-                                "vkEnumeratePhysicalDevices first time with error ";
-        error_msg += vk_result;
-        error_msg += " and count ";
-        error_msg += std::to_string(count);
-        logger.LogError(error_msg);
-        return false;
-    }
-    physical_devices.resize(count);
-    vk_result = vkEnumeratePhysicalDevices(m_vk_inst, &count, physical_devices.data());
-    if (VK_SUCCESS != vk_result || count == 0) {
-        std::string error_msg = "LgWindow::QueryWindowSystem failed to query "
-                                "vkEnumeratePhysicalDevices with count ";
-        error_msg += std::to_string(count);
-        error_msg += " error ";
-        error_msg += vk_result;
-        logger.LogError(error_msg);
-        return false;
-    }
-
-    int32_t best_integrated_index = -1;
-    int32_t best_discrete_index = -1;
-    int32_t best_virtual_index = -1;
-    std::vector<VkPhysicalDeviceProperties> phys_dev_props;
-    phys_dev_props.resize(count);
-    for (uint32_t i = 0; i < count; ++i) {
-        vkGetPhysicalDeviceProperties(physical_devices[i], &phys_dev_props[i]);
-        
-        switch (phys_dev_props[i].deviceType) {
-            case VK_PHYSICAL_DEVICE_TYPE_OTHER:
-                logger.LogInfo("Other device found");
-                break;
-            case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
-                logger.LogInfo("Integrated GPU found");
-                if (best_integrated_index != -1) {
-                    if (CompareGpus(phys_dev_props[best_integrated_index],
-                                    phys_dev_props[i])) {
-                        best_integrated_index = i;
-                    }
-                } else {
-                    best_integrated_index = i;
-                }
-                break;
-            case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
-                logger.LogInfo("Discrete GPU found");
-                if (best_discrete_index != -1) {
-                    if (CompareGpus(phys_dev_props[best_discrete_index],
-                                    phys_dev_props[i])) {
-                        best_discrete_index = i;
-                    }
-                } else {
-                    best_discrete_index = i;
-                }
-                break;
-            case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU:
-                logger.LogInfo("Virtual GPU found");
-                if (best_virtual_index != -1) {
-                    if (CompareGpus(phys_dev_props[best_virtual_index],
-                                    phys_dev_props[i])) {
-                        best_virtual_index = i;
-                    }
-                } else {
-                    best_virtual_index = i;
-                }
-                break;
-            case VK_PHYSICAL_DEVICE_TYPE_CPU:
-                logger.LogInfo("CPU found");
-                break;
-            default:
-                break;
-        }
-    }
-
-    // If we have the choice between discrete and integrated, look at the
-    // battery status to help make the decision.  If running on battery, use
-    // integrated.  Otherwise, choose discrete.
-    if (best_discrete_index != -1 && best_integrated_index != -1) {
-        LgSystemBatteryStatus battery_status = SystemBatteryStatus();
-        switch (battery_status) {
-            case LG_BATTERY_STATUS_NONE:
-            case LG_BATTERY_STATUS_CHARGING:
-                m_vk_phys_dev = physical_devices[best_discrete_index];
-                break;
-            default:
-                m_vk_phys_dev = physical_devices[best_integrated_index];
-                break;
-        }
-    // Otherwise, we have one or the other.
-    } else if (best_discrete_index != -1) {
-        m_vk_phys_dev = physical_devices[best_discrete_index];
-    } else if (best_integrated_index != -1) {
-        m_vk_phys_dev = physical_devices[best_integrated_index];
-    } else if (best_virtual_index != -1) {
-        m_vk_phys_dev = physical_devices[best_virtual_index];
-    } else {
-        logger.LogError("Failed to find a GPU of any kind");
-        return false;
-    }
-
-#if 0 // Brainpain
-    bool found_swapchain = false;
-        } else if (!strcmp(extension_properties[ext].extensionName, VK_KHR_SWAPCHAIN_EXTENSION_NAME)) {
-            found_swapchain = true;
-            extensions_to_enable[enable_extension_count++] = VK_KHR_SWAPCHAIN_EXTENSION_NAME;
-            logger.LogInfo("Found swapchain extension in Instance Extension list");
-        }
-    if (!found_swapchain) {
-        std::string error_msg = "LgWindow::QueryWindowSystem failed to find necessary extension ";
-        error_msg += VK_KHR_SWAPCHAIN_EXTENSION_NAME;
-        logger.LogError(error_msg);
-        return false;
-    }
-#endif
-
-    return true;
 }
 
 LgSystemBatteryStatus LgGraphicsEngine::SystemBatteryStatus(void) {
@@ -383,48 +116,13 @@ LgSystemBatteryStatus LgGraphicsEngine::SystemBatteryStatus(void) {
     return cur_status;
 }
 
-int LgGraphicsEngine::CompareGpus(VkPhysicalDeviceProperties &gpu_0,
-                                  VkPhysicalDeviceProperties &gpu_1) {
-    int gpu_to_use = 1;
-    bool determined = false;
-
-    // For now, use discrete over integrated
-    if (gpu_0.deviceType != gpu_1.deviceType) {
-        if (gpu_0.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
-            gpu_to_use = 0;
-            determined = true;
-        } else if (gpu_1.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
-            gpu_to_use = 1;
-            determined = true;
-        } else if (gpu_0.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU) {
-            gpu_to_use = 0;
-            determined = true;
-        } else if (gpu_1.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU) {
-            gpu_to_use = 1;
-            determined = true;
-        }
+void LgGraphicsEngine::Loop(void) {
+    while (!m_quit) {
+#if 0 // TODO : Brainpain
+        demo_draw(demo);
+        demo->curFrame++;
+        if (demo->frameCount != INT32_MAX && demo->curFrame == demo->frameCount)
+            demo->quit = true;
+#endif
     }
-
-    // For now, use newest API version if we got this far.
-    if (!determined) {
-        uint16_t major_0 = VK_VERSION_MAJOR(gpu_0.apiVersion);
-        uint16_t minor_0 = VK_VERSION_MINOR(gpu_0.apiVersion);
-        uint16_t major_1 = VK_VERSION_MAJOR(gpu_1.apiVersion);
-        uint16_t minor_1 = VK_VERSION_MINOR(gpu_1.apiVersion);
-
-        if (major_0 != major_1) {
-            if (major_0 > major_1) {
-                gpu_to_use = 0;
-            } else {
-                gpu_to_use = 1;
-            }
-        } else {
-            if (minor_0 > minor_1) {
-                gpu_to_use = 0;
-            } else {
-                gpu_to_use = 1;
-            }
-        }
-    }
-    return gpu_to_use;
 }

@@ -1,3 +1,11 @@
+include_directories(
+    ${CMAKE_CURRENT_BINARY_DIR}
+    ${CMAKE_BINARY_DIR}
+    window
+    utils
+    .
+)
+
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     add_definitions(-DVK_USE_PLATFORM_WIN32_KHR -DWIN32_LEAN_AND_MEAN)
     set(DisplayServer Win32)
@@ -87,18 +95,32 @@ generate_gravity_spv(simple_single_tex.vert simple_single_tex-vs.spv)
 generate_gravity_spv(simple_single_tex.frag simple_single_tex-fs.spv)
 
 if(WIN32)
-    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_CRT_SECURE_NO_WARNINGS -D_USE_MATH_DEFINES")
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_CRT_SECURE_NO_WARNINGS -D_USE_MATH_DEFINES")
+	set(GRAVITY_WINDOW_SRCS
+	    window/lgwin32window.cpp
+	    window/lgwin32window.hpp
+	    window/lgwindow.cpp
+	    window/lgwindow.hpp
+	)
+else()
+	set(GRAVITY_WINDOW_SRCS
+	    window/lgxcbwindow.cpp
+	    window/lgxcbwindow.hpp
+	    window/lgwaylandwindow.cpp
+	    window/lgwaylandwindow.hpp
+	    window/lgwindow.cpp
+	    window/lgwindow.hpp
+	)
 endif()
 
 add_executable(LunarGravity
                 ${CMAKE_CURRENT_BINARY_DIR}/resources/shaders/simple_single_tex-vs.spv
                 ${CMAKE_CURRENT_BINARY_DIR}/resources/shaders/simple_single_tex-fs.spv
-                lglogger.cpp
-                lglogger.hpp
-                lgwindow.cpp
-                lgwindow.hpp
+                utils/lglogger.cpp
+                utils/lglogger.hpp
+                ${GRAVITY_WINDOW_SRCS}
                 lggfxengine.cpp
                 lggfxengine.hpp
+                lgvulkanengine.cpp
+                lgvulkanengine.hpp
                 main.cpp)
 target_link_libraries(LunarGravity ${LIBRARIES})

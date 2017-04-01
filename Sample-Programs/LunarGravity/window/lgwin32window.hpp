@@ -1,5 +1,5 @@
 /*
- * LunarGravity - lgwindow.hpp
+ * LunarGravity - lgwin32window.hpp
  *
  * Copyright (C) 2017 LunarG, Inc.
  *
@@ -18,31 +18,31 @@
 
 #pragma once
 
-class LgGraphicsEngine;
+#ifdef VK_USE_PLATFORM_WIN32_KHR
 
-#include "vulkan/vulkan.h"
+#include "lgwindow.hpp"
 
-class LgWindow {
+class LgWin32Window : public LgWindow {
     public:
 
         // Create a protected constructor
-        LgWindow(const uint32_t width, const uint32_t height, bool fullscreen);
+        LgWin32Window(const char *win_name, const uint32_t width, const uint32_t height, bool fullscreen);
 
         // We don't want any copy constructors
-        LgWindow(const LgWindow &window) = delete;
-        LgWindow &operator=(const LgWindow &window) = delete;
-
-        bool QueryWindowSystem(LgGraphicsEngine *pEngine, std::vector<VkExtensionProperties> &ext_props,
-                               uint32_t &ext_count, const char** desired_extensions);
+        LgWin32Window(const LgWin32Window &window) = delete;
+        LgWin32Window &operator=(const LgWin32Window &window) = delete;
 
         // Make the destructor public
-        virtual ~LgWindow();
+        virtual ~LgWin32Window();
+
+        virtual bool CreateGfxWindow(VkInstance &instance);
 
     protected:
  
-   private:
-        uint32_t    m_width;
-        uint32_t    m_height;
-        bool        m_fullscreen;
-        LgGraphicsEngine *m_gfx_engine;
+    private:
+        HINSTANCE m_connection;
+        HWND m_window;
+        POINT m_minsize;
 };
+
+#endif // VK_USE_PLATFORM_WIN32_KHR

@@ -22,8 +22,16 @@
 #include <cstring>
 
 #include "lglogger.hpp"
-#include "lgwindow.hpp"
-#include "lggfxengine.hpp"
+
+#ifdef VK_USE_PLATFORM_XCB_KHR
+    #include "lgxcbwindow.hpp"
+#elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
+    #include "lgwaylandwindow.hpp"
+#else
+    #include "lgwindow.hpp"
+#endif
+
+#include "lgvulkanengine.hpp"
 
 #define APPLICATION_NAME "Lunar Gravity Demo"
 #define APPLICATION_VERSION 1
@@ -91,7 +99,14 @@ int main(int argc, char *argv[]) {
     LgLogger &logger = LgLogger::getInstance();
     logger.SetLogLevel(log_level);
     logger.TogglePopups(enable_popups);
-    LgWindow window(win_width, win_height, fullscreen);
-    LgGraphicsEngine engine(APPLICATION_NAME, APPLICATION_VERSION, validate, window);
+#ifdef VK_USE_PLATFORM_XCB_KHR
+    LgXcbWindow window(APPLICATION_NAME, win_width, win_height, fullscreen);
+#elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
+    LgWaylandWindow window(APPLICATION_NAME, win_width, win_height, fullscreen);
+#else
+    LgWindow window(APPLICATION_NAME, win_width, win_height, fullscreen);
+#endif
+    LgVulkanEngine engine(APPLICATION_NAME, APPLICATION_VERSION, validate, &window);
+
     return 0;
 }
