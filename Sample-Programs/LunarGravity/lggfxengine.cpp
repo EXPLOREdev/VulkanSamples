@@ -24,8 +24,7 @@
 #include "lgwindow.hpp"
 
 #ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
+//#include <windows.h>
 #elif defined __ANDROID__
 #else
 #include <stdlib.h>
@@ -57,7 +56,7 @@ LgSystemBatteryStatus LgGraphicsEngine::SystemBatteryStatus(void) {
             case 2:
                 cur_status = LG_BATTERY_STATUS_DISCHARGING_LOW;
                 break;
-            case 4
+            case 4:
                 cur_status = LG_BATTERY_STATUS_DISCHARGING_CRITICAL;
                 break;
             case 8:

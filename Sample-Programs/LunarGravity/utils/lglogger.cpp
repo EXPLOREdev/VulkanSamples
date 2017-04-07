@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 
+#include <string>
 #include "lglogger.hpp"
 
 VKAPI_ATTR VkBool32 VKAPI_CALL LoggerCallback(VkFlags msgFlags, VkDebugReportObjectTypeEXT objType,

@@ -38,6 +38,7 @@ class LgWindow {
                                uint32_t &ext_count, const char** desired_extensions);
 
         virtual bool CreateGfxWindow(VkInstance &instance) = 0;
+        virtual bool CloseGfxWindow() = 0;
 
         // Make the destructor public
         virtual ~LgWindow();

@@ -36,11 +36,12 @@ class LgWin32Window : public LgWindow {
         virtual ~LgWin32Window();
 
         virtual bool CreateGfxWindow(VkInstance &instance);
+        virtual bool CloseGfxWindow();
 
     protected:
  
     private:
-        HINSTANCE m_connection;
+        HINSTANCE m_instance;
         HWND m_window;
         POINT m_minsize;
 };

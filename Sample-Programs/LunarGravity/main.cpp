@@ -27,6 +27,8 @@
     #include "lgxcbwindow.hpp"
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
     #include "lgwaylandwindow.hpp"
+#elif defined(VK_USE_PLATFORM_WIN32_KHR)
+    #include "lgwin32window.hpp"
 #else
     #include "lgwindow.hpp"
 #endif
@@ -103,8 +105,10 @@ int main(int argc, char *argv[]) {
     LgXcbWindow window(APPLICATION_NAME, win_width, win_height, fullscreen);
 #elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
     LgWaylandWindow window(APPLICATION_NAME, win_width, win_height, fullscreen);
+#elif defined(VK_USE_PLATFORM_WIN32_KHR)
+    LgWin32Window window(APPLICATION_NAME, win_width, win_height, fullscreen);
 #else
-    LgWindow window(APPLICATION_NAME, win_width, win_height, fullscreen);
+#error "Unsupported Window format!"
 #endif
     LgVulkanEngine engine(APPLICATION_NAME, APPLICATION_VERSION, validate, &window);
 
